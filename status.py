@@ -80,10 +80,8 @@ class ServiceStatusPage():
         for s in self.services:
             self._write_service_info(output, s)
 
-            if path == "/%s/start" % (s):
-                self._service_control(s, "start")
-            elif path == "/%s/stop" % (s):
-                self._service_control(s, "stop")
+            if path in ["/%s/%s" % (s, c) for c in ["start", "stop"]]:
+                self._service_control(s, path.split("/")[-1])
         output.write("""</body></html>""")
 
         # LOAD AVERAGE
