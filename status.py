@@ -12,9 +12,17 @@ PORT     = 8080
 HOSTNAME = socket.gethostname()
 
 
+class Service(object):
+    def __init__(self, name, title, controllable, info_url):
+        self.name         = name
+        self.title        = title
+        self.controllable = controllable
+        self.info_url     = info_url
+
 class ServiceStatusPage():
-    # Services whose status should be shown, and if they should be controllable
-    SERVICES            = {"transmission-daemon": True, "openvpn": True}
+    # Services whose status should be shown
+    SERVICES            = [Service(name="transmission-daemon", title="Transmission"   , controllable=True, info_url="%s:9091" % HOSTNAME),
+                           Service(name="openvpn"            , title="Open VPN Client", controllable=True, info_url=None)]
     # Set to True to show network interface status
     SHOW_NETWORK_STATUS = True
     # Set to True to show load averages
@@ -34,16 +42,19 @@ class ServiceStatusPage():
     def _get_service_status(self, service):
         return self._run_and_get_output(["sudo", "service", service, "status"]) or "Unable to Get Status"
 
-    def _write_service_info(self, output, service, controllable):
-        output.write("""<b>%s</b> <br/>""" % (service))
+    def _write_service_info(self, output, service):
+        output.write("""<b>%s</b> <br/>""" % (service.title))
+
         output.write("""<code>""")
-        for i in self._get_service_status(service):
+        for i in self._get_service_status(service.name):
           output.write(i)
           if i == '\n':
             output.write("""<br/>""")
         output.write("""</code> <br/>""")
-        if controllable is True:
-            output.write("""<a href="/%s/start">START</a> | <a href="/%s/stop">STOP</a>""" % (service, service))
+        if service.controllable is True:
+            output.write("""<a href="/%s/start">START</a> | <a href="/%s/stop">STOP</a>""" % (service.name, service.name))
+        if service.info_url is not None:
+            output.write(""" | <a href="%s">INFO</a>""" % (service.info_url))
         output.write("""<br/><br/>""")
 
     def _service_control(self, service, command):
@@ -90,10 +101,10 @@ class ServiceStatusPage():
         # SERVICE STATUS/CONTROL
         if self.SERVICES is not None:
             output.write("""<h1>Service Status:</h1>""")
-            for (s, c) in self.SERVICES.iteritems():
-                self._write_service_info(output, s, c)
+            for s in self.SERVICES:
+                self._write_service_info(output, s)
 
-                if path in ["/%s/%s" % (s, c) for c in ["start", "stop"]]:
+                if path in ["/%s/%s" % (s.name, c) for c in ["start", "stop"]]:
                     self._service_control(s, path.split("/")[-1])
             output.write("""</body></html>""")
 
