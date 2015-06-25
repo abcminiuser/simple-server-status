@@ -153,6 +153,7 @@ class ServiceStatusPage():
         html.write("</body>")
         html.write("</html>")
 
+
 class RequestHandler(BaseHTTPRequestHandler):
     routers = [ ServiceStatusPage() ]
 
