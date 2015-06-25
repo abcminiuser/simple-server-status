@@ -12,6 +12,44 @@ PORT     = 80
 HOSTNAME = socket.gethostname()
 
 
+class HTML(object):
+    @staticmethod
+    def head(nested=None, href=None):
+        return """<head>%s</head>""" % (nested)
+
+    @staticmethod
+    def title(nested=None, href=None):
+        return """<title>%s</title>""" % (nested)
+
+    @staticmethod
+    def meta(nested=None, metatype=None, value=None, content=None):
+       return """<META %s="%s" content="%s">""" % (metatype, value, content)
+
+    @staticmethod
+    def head(nested=None, href=None):
+        return """<head>%s</head>""" % (nested)
+
+    @staticmethod
+    def a(nested=None, href=None):
+        return """<a href="%s">%s</a>""" % (href, nested)
+
+    @staticmethod
+    def h1(nested=None):
+        return """<h1>%s</h1>""" % (nested)
+
+    @staticmethod
+    def b(nested=None):
+        return """<b>%s</b>""" % (nested)
+
+    @staticmethod
+    def code(nested=None):
+        return """<code>%s</code>""" % (nested)
+
+    @staticmethod
+    def br(nested=None):
+        return """<br />"""
+
+
 class Service(object):
     def __init__(self, name, title, controllable, info_url):
         self.name         = name
@@ -43,21 +81,6 @@ class ServiceStatusPage():
     def _get_service_status(self, service):
         return self._run_and_get_output(["sudo", "service", service, "status"]) or "Unable to Get Status"
 
-    def _write_service_info(self, output, service):
-        output.write("""<b>%s</b> <br/>""" % (service.title))
-
-        output.write("""<code>""")
-        for i in self._get_service_status(service.name):
-          output.write(i)
-          if i == '\n':
-            output.write("""<br/>""")
-        output.write("""</code> <br/>""")
-        if service.controllable is True:
-            output.write("""<a href="/%s/start">START</a> | <a href="/%s/stop">STOP</a>""" % (service.name, service.name))
-        if service.info_url is not None:
-            output.write(""" | <a href="%s">INFO</a>""" % (service.info_url))
-        output.write("""<br/><br/>""")
-
     def _service_control(self, service, command):
         subprocess.call(["sudo", "service", service, command])
 
@@ -67,8 +90,11 @@ class ServiceStatusPage():
     def route(self, path, output):
         refresh_delay = 0 if path != "/" else self.IDLE_REFRESH_DELAY
 
-        output.write("""<html><head><title>%s - STATUS</title>""" % (HOSTNAME))
-        output.write(""" <META http-equiv="refresh" content="%s;URL=/"> """ % (refresh_delay))
+        output.write("<html>")
+
+        output.write("<head>")
+        output.write(HTML.title("%s - STATUS" % (HOSTNAME)))
+        output.write(HTML.meta("http-equiv", "refresh", "%s;URL=/" % (refresh_delay)))
         output.write("""
                 <style>
                         code {
@@ -89,33 +115,42 @@ class ServiceStatusPage():
                         }
                 </style>
                 """)
-        output.write("""</head><body>""")
+        output.write("</head>")
+
+        output.write("<body>")
 
         # NETWORK STATUS
         if self.SHOW_NETWORK_STATUS is True:
-            output.write("""<h1>Network Status:</h1>""")
-            output.write("""<code>""")
-            for l in self._get_network_status().split('\n'):
-                 output.write(l + """<br/>""")
-            output.write("""</code>""")
+            output.write(HTML.h1("Network Status:"))
+            output.write(HTML.code(HTML.br().join(self._get_network_status().split('\n'))))
 
         # SERVICE STATUS/CONTROL
         if self.SERVICES is not None:
-            output.write("""<h1>Service Status:</h1>""")
-            for s in self.SERVICES:
-                self._write_service_info(output, s)
+            output.write(HTML.h1("Service Status:"))
+            for service in self.SERVICES:
+                output.write(HTML.b(service.title) + HTML.br())
 
-                if path in ["/%s/%s" % (s.name, c) for c in ["start", "stop"]]:
-                    self._service_control(s, path.split("/")[-1])
-            output.write("""</body></html>""")
+                output.write(HTML.code("".join(i if i != '\n' else HTML.br() for i in self._get_service_status(service.name))))
+                output.write(HTML.br())
+
+                if service.controllable is True:
+                    output.write(HTML.a("START", "/%s/start" % (service.name)) + " | " + HTML.a("STOP", "/%s/stop" % (service.name)))
+                if service.info_url is not None:
+                    output.write(" | " + HTML.a("INFO", service.info_url))
+
+                output.write(HTML.br() * 2)
+
+                if path in ["/%s/%s" % (service.name, c) for c in ["start", "stop"]]:
+                    self._service_control(service, path.split("/")[-1])
 
         # LOAD AVERAGE
         if self.SHOW_LOAD_AVERAGES is True and hasattr(os, "getloadavg"):
             load_average = os.getloadavg()
-            output.write("""<h1>Load Status</h1>""")
-            output.write("""<code><b>5 min:</b> %.02f, <b>10 min:</b> %.02f, <b>15 min:</b> %.02f</code>""" % (load_average[0], load_average[1], load_average[2]))
-            output.write("""</code>""")
+            output.write(HTML.h1("Load Averages:"))
+            output.write(HTML.code("%s %.02f %s %.02f %s %.02f" % (HTML.b("5 min:"), load_average[0], HTML.b("10 min:"), load_average[1], HTML.b("15 min:"), load_average[2])))
 
+        output.write("</body>")
+        output.write("</html>")
 
 class RequestHandler(BaseHTTPRequestHandler):
     routers = [ ServiceStatusPage() ]
