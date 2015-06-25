@@ -142,7 +142,7 @@ class ServiceStatusPage():
                 html.write(html.br() * 2)
 
                 if path in ["/%s/%s" % (service.name, c) for c in ["start", "stop"]]:
-                    self._service_control(service, path.split("/")[-1])
+                    self._service_control(service.name, path.split("/")[-1])
 
         # LOAD AVERAGE
         if self.SHOW_LOAD_AVERAGES is True and hasattr(os, "getloadavg"):
