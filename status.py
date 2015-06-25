@@ -13,40 +13,40 @@ HOSTNAME = socket.gethostname()
 
 
 class HTML(object):
-    @staticmethod
-    def head(nested=None, href=None):
-        return """<head>%s</head>""" % (nested)
+    output = None
 
-    @staticmethod
-    def title(nested=None, href=None):
-        return """<title>%s</title>""" % (nested)
+    def __init__(self, output):
+        self.output = output
 
-    @staticmethod
-    def meta(nested=None, metatype=None, value=None, content=None):
-       return """<META %s="%s" content="%s">""" % (metatype, value, content)
+    def write(self, content):
+        self.output.write(content)
 
-    @staticmethod
-    def head(nested=None, href=None):
-        return """<head>%s</head>""" % (nested)
+    def element(self, name, content, **kwargs):
+        attrlist = "".join("%s=\"%s\"" % (key, value) for (key, value) in kwargs.iteritems())
+        return """<%s %s>%s</%s>""" % (name, attrlist, content, name)
 
-    @staticmethod
-    def a(nested=None, href=None):
-        return """<a href="%s">%s</a>""" % (href, nested)
+    def head(self, content=None, **kwargs):
+        return self.element("head", content, **kwargs)
 
-    @staticmethod
-    def h1(nested=None):
-        return """<h1>%s</h1>""" % (nested)
+    def title(self, content=None, **kwargs):
+        return self.element("title", content, **kwargs)
 
-    @staticmethod
-    def b(nested=None):
-        return """<b>%s</b>""" % (nested)
+    def meta(self, metatype=None, value=None, content=None):
+        return """<META %s="%s" content="%s">""" % (metatype, value, content)
 
-    @staticmethod
-    def code(nested=None):
-        return """<code>%s</code>""" % (nested)
+    def a(self, content=None, **kwargs):
+        return self.element("a", content, **kwargs)
 
-    @staticmethod
-    def br(nested=None):
+    def h1(self, content=None, **kwargs):
+        return self.element("h1", content, **kwargs)
+
+    def b(self, content=None, **kwargs):
+        return self.element("b", content, **kwargs)
+
+    def code(self, content=None, **kwargs):
+        return self.element("code", content, **kwargs)
+
+    def br(self):
         return """<br />"""
 
 
@@ -90,12 +90,13 @@ class ServiceStatusPage():
     def route(self, path, output):
         refresh_delay = 0 if path != "/" else self.IDLE_REFRESH_DELAY
 
-        output.write("<html>")
+        html = HTML(output)
+        html.write("<html>")
 
-        output.write("<head>")
-        output.write(HTML.title("%s - STATUS" % (HOSTNAME)))
-        output.write(HTML.meta("http-equiv", "refresh", "%s;URL=/" % (refresh_delay)))
-        output.write("""
+        html.write("<head>")
+        html.write(html.title("%s - STATUS" % (HOSTNAME)))
+        html.write(html.meta("http-equiv", "refresh", "%s;URL=/" % (refresh_delay)))
+        html.write("""
                 <style>
                         code {
                           width: 100em;
@@ -115,30 +116,30 @@ class ServiceStatusPage():
                         }
                 </style>
                 """)
-        output.write("</head>")
+        html.write("</head>")
 
-        output.write("<body>")
+        html.write("<body>")
 
         # NETWORK STATUS
         if self.SHOW_NETWORK_STATUS is True:
-            output.write(HTML.h1("Network Status:"))
-            output.write(HTML.code(HTML.br().join(self._get_network_status().split('\n'))))
+            html.write(html.h1("Network Status:"))
+            html.write(html.code(html.br().join(self._get_network_status().split('\n'))))
 
         # SERVICE STATUS/CONTROL
         if self.SERVICES is not None:
-            output.write(HTML.h1("Service Status:"))
+            html.write(html.h1("Service Status:"))
             for service in self.SERVICES:
-                output.write(HTML.b(service.title) + HTML.br())
+                html.write(html.b(service.title) + html.br())
 
-                output.write(HTML.code("".join(i if i != '\n' else HTML.br() for i in self._get_service_status(service.name))))
-                output.write(HTML.br())
+                html.write(html.code("".join(i if i != '\n' else html.br() for i in self._get_service_status(service.name))))
+                html.write(html.br())
 
                 if service.controllable is True:
-                    output.write(HTML.a("START", "/%s/start" % (service.name)) + " | " + HTML.a("STOP", "/%s/stop" % (service.name)))
+                    html.write(html.a("START", href="/%s/start" % (service.name)) + " | " + html.a("STOP", href="/%s/stop" % (service.name)))
                 if service.info_url is not None:
-                    output.write(" | " + HTML.a("INFO", service.info_url))
+                    html.write(" | " + html.a("INFO", href=service.info_url))
 
-                output.write(HTML.br() * 2)
+                html.write(html.br() * 2)
 
                 if path in ["/%s/%s" % (service.name, c) for c in ["start", "stop"]]:
                     self._service_control(service, path.split("/")[-1])
@@ -146,11 +147,11 @@ class ServiceStatusPage():
         # LOAD AVERAGE
         if self.SHOW_LOAD_AVERAGES is True and hasattr(os, "getloadavg"):
             load_average = os.getloadavg()
-            output.write(HTML.h1("Load Averages:"))
-            output.write(HTML.code("%s %.02f %s %.02f %s %.02f" % (HTML.b("5 min:"), load_average[0], HTML.b("10 min:"), load_average[1], HTML.b("15 min:"), load_average[2])))
+            html.write(html.h1("Load Averages:"))
+            html.write(html.code("%s %.02f %s %.02f %s %.02f" % (html.b("5 min:"), load_average[0], html.b("10 min:"), load_average[1], html.b("15 min:"), load_average[2])))
 
-        output.write("</body>")
-        output.write("</html>")
+        html.write("</body>")
+        html.write("</html>")
 
 class RequestHandler(BaseHTTPRequestHandler):
     routers = [ ServiceStatusPage() ]
