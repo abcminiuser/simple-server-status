@@ -25,7 +25,7 @@ some_user_name ALL=NOPASSWD: /usr/sbin/service some_other_service
 
 ## Use
 
-By default, when it runs it spins up a webserver on port 8080, with uptime, network, service and other basic info.
+By default, when it runs it spins up a webserver on port 80, with uptime, network, service and other basic info.
 
 ## License
 

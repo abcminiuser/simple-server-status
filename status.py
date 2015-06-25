@@ -7,7 +7,7 @@ import socket
 
 
 # Port to serve on
-PORT     = 8080
+PORT     = 80
 # Host name to show in the page title
 HOSTNAME = socket.gethostname()
 
@@ -19,9 +19,10 @@ class Service(object):
         self.controllable = controllable
         self.info_url     = info_url
 
+
 class ServiceStatusPage():
     # Services whose status should be shown
-    SERVICES            = [Service(name="transmission-daemon", title="Transmission"   , controllable=True, info_url="%s:9091" % HOSTNAME),
+    SERVICES            = [Service(name="transmission-daemon", title="Transmission"   , controllable=True, info_url="%s:9091/transmission/web/" % HOSTNAME),
                            Service(name="openvpn"            , title="Open VPN Client", controllable=True, info_url=None)]
     # Set to True to show network interface status
     SHOW_NETWORK_STATUS = True
