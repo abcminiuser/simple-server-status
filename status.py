@@ -22,7 +22,7 @@ class Service(object):
 
 class ServiceStatusPage():
     # Services whose status should be shown
-    SERVICES            = [Service(name="transmission-daemon", title="Transmission"   , controllable=True, info_url="%s:9091/transmission/web/" % HOSTNAME),
+    SERVICES            = [Service(name="transmission-daemon", title="Transmission"   , controllable=True, info_url="http://%s:9091/transmission/web/" % HOSTNAME),
                            Service(name="openvpn"            , title="Open VPN Client", controllable=True, info_url=None)]
     # Set to True to show network interface status
     SHOW_NETWORK_STATUS = True
