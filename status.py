@@ -22,30 +22,26 @@ class ServiceStatusPage():
     # Seconds between each auto-refresh
     IDLE_REFRESH_DELAY  = 10
 
-    def _get_network_status(self):
+    def _run_and_get_output(self, command):
         try:
-            stat = subprocess.check_output(["ifconfig"])
+            return subprocess.check_output(command, stderr=subprocess.STDOUT)
         except:
-            stat = "Unable to Retrieve Network Info"
+            return None
 
-        return stat
+    def _get_network_status(self):
+        return self._run_and_get_output(["ifconfig"]) or "Unable to Retrieve Network Info"
 
     def _get_service_status(self, service):
-        try:
-             stat = subprocess.check_output(["sudo", "service", service, "status"], stderr=subprocess.STDOUT)
-        except:
-             stat = "Not Running"
-
-        return stat
+        return self._run_and_get_output(["sudo", "service", service, "status"]) or "Unable to Get Status"
 
     def _write_service_info(self, output, service, controllable):
-        output.write("<b>%s</b> <br/>" % (service))
-        output.write("<code>")
+        output.write("""<b>%s</b> <br/>""" % (service))
+        output.write("""<code>""")
         for i in self._get_service_status(service):
           output.write(i)
           if i == '\n':
-            output.write("<br/>")
-        output.write("</code> <br/>")
+            output.write("""<br/>""")
+        output.write("""</code> <br/>""")
         if controllable is True:
             output.write("""<a href="/%s/start">START</a> | <a href="/%s/stop">STOP</a>""" % (service, service))
         output.write("""<br/><br/>""")
@@ -105,7 +101,7 @@ class ServiceStatusPage():
         if self.SHOW_LOAD_AVERAGES is True and hasattr(os, "getloadavg"):
             load_average = os.getloadavg()
             output.write("""<h1>Load Status</h1>""")
-            output.write("<code><b>5 min:</b> %.02f, <b>10 min:</b> %.02f, <b>15 min:</b> %.02f</code>" % (load_average[0], load_average[1], load_average[2]))
+            output.write("""<code><b>5 min:</b> %.02f, <b>10 min:</b> %.02f, <b>15 min:</b> %.02f</code>""" % (load_average[0], load_average[1], load_average[2]))
             output.write("""</code>""")
 
 
