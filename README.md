@@ -8,6 +8,8 @@ This is just a simple quick-and-dirty Python script I made to quickly check on a
 
 Python 2.x or 3.x should work.
 
+Assumes a system.d compatible system (originally targeted at Ubuntu MATE on a Raspberry Pi 2).
+
 ## Installation
 
 Customize the `server-status-initd` init script to use the correct path to the server, and use the correct name. Add it to `etc/init.d` then use:
@@ -16,11 +18,13 @@ Customize the `server-status-initd` init script to use the correct path to the s
 update-rc.d server-status-initd defaults
 ```
 
-To auto-start it each boot. If you want remote service start/stop, you'll have to start it under an account that is added to the `/etc/sudoers` file to allow it to control services without a password:
+To auto-start it each boot. If you want remote service start/stop, you'll have to start it under an account that is added to the `/etc/sudoers` file to allow it to control services without a password. Due to the argument list in system.d you will need to explicitly allow both start and stop for each service:
 
 ```
-some_user_name ALL=NOPASSWD: /usr/sbin/service some_service
-some_user_name ALL=NOPASSWD: /usr/sbin/service some_other_service
+some_user_name ALL=NOPASSWD: /usr/systemctl start some_service
+some_user_name ALL=NOPASSWD: /usr/systemctl stop some_service
+some_user_name ALL=NOPASSWD: /usr/systemctl start some_other_service
+some_user_name ALL=NOPASSWD: /usr/systemctl stop some_other_service
 ```
 
 ## Use

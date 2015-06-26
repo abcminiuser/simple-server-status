@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from subprocess import CalledProcessError
 import subprocess
 import os
 import socket
@@ -72,6 +73,8 @@ class ServiceStatusPage():
     def _run_and_get_output(self, command):
         try:
             return subprocess.check_output(command, stderr=subprocess.STDOUT)
+	except CalledProcessError, e:
+            return e.output
         except:
             return None
 
@@ -79,10 +82,10 @@ class ServiceStatusPage():
         return self._run_and_get_output(["ifconfig"]) or "Unable to Retrieve Network Info"
 
     def _get_service_status(self, service):
-        return self._run_and_get_output(["sudo", "service", service, "status"]) or "Unable to Get Status"
+        return self._run_and_get_output(["systemctl", "is-active", service]) or "Unable to Get Status"
 
     def _service_control(self, service, command):
-        subprocess.call(["sudo", "service", service, command])
+        subprocess.call(["sudo", "systemctl", command, service])
 
     def accept(self, path):
         return True
