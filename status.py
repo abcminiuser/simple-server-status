@@ -58,7 +58,7 @@ class Service(object):
     SYSTEMD_BASE_NAME = "org.freedesktop.systemd1"
     SYSTEMD_BASE_PATH = "/org/freedesktop/systemd1"
 
-    ACTIONS = ["start", "stop"];
+    actions = ["start", "stop"];
 
     def __init__(self, name, title, controllable, info_url):
         self.name         = name
@@ -70,10 +70,10 @@ class Service(object):
         systemd = sysbus.get_object(self.SYSTEMD_BASE_NAME, self.SYSTEMD_BASE_PATH)
         systemd_manager = dbus.Interface(systemd, dbus_interface=("%s.Manager" % self.SYSTEMD_BASE_NAME))
 
-	self.systemd_unit_name     = systemd_manager.LoadUnit("%s.service" % name)
-	self.systemd_service       = sysbus.get_object(self.SYSTEMD_BASE_NAME, str(self.systemd_unit_name))
+        self.systemd_unit_name     = systemd_manager.LoadUnit("%s.service" % name)
+        self.systemd_service       = sysbus.get_object(self.SYSTEMD_BASE_NAME, str(self.systemd_unit_name))
         self.systemd_service_props = dbus.Interface(self.systemd_service, dbus_interface=("%s.Properties" % self.DBUS_BASE_NAME))
-	self.systemd_service_if    = dbus.Interface(self.systemd_service, "%s.Unit" % self.SYSTEMD_BASE_NAME)
+        self.systemd_service_if    = dbus.Interface(self.systemd_service, "%s.Unit" % self.SYSTEMD_BASE_NAME)
 
     def _get_property(self, name):
         return self.systemd_service_props.Get(("%s.Unit" % self.SYSTEMD_BASE_NAME), name)
@@ -85,7 +85,7 @@ class Service(object):
         if operation in self.ACTIONS:
             getattr(self, operation)()
         else:
-            raise Exception("Requested action not allowed/recognized.")	
+            raise Exception("Requested action not allowed/recognized.")
 
     def start(self):
         self.systemd_service_if.Start('replace')
@@ -95,6 +95,9 @@ class Service(object):
 
 
 class ServiceStatusPage():
+    # Base URL where the status page should be located
+    BASE_URL            = "/status"
+
     # Services whose status should be shown
     SERVICES            = [Service(name="transmission-daemon", title="Transmission"   , controllable=True, info_url="http://%s:9091/transmission/web/" % HOSTNAME),
                            Service(name="openvpn"            , title="Open VPN Client", controllable=True, info_url=None)]
@@ -108,7 +111,7 @@ class ServiceStatusPage():
     def _run_and_get_output(self, command):
         try:
             return subprocess.check_output(command, stderr=subprocess.STDOUT)
-	except CalledProcessError, e:
+        except CalledProcessError, e:
             return e.output
         except:
             return None
@@ -117,17 +120,18 @@ class ServiceStatusPage():
         return self._run_and_get_output(["ifconfig"]) or "Unable to Retrieve Network Info"
 
     def accept(self, path):
-        return True
+        return path.startswith(self.BASE_URL)
 
     def route(self, path, output):
-        refresh_delay = 0 if path != "/" else self.IDLE_REFRESH_DELAY
+        refresh_delay = 0 if path != self.BASE_URL else self.IDLE_REFRESH_DELAY
 
         html = HTML(output)
+        html.write("<!doctype html>")
         html.write("<html>")
 
         html.write("<head>")
         html.write(html.title("%s - STATUS" % (HOSTNAME)))
-        html.write(html.meta("http-equiv", "refresh", "%s;URL=/" % (refresh_delay)))
+        html.write(html.meta("http-equiv", "refresh", "%s;URL=%s" % (refresh_delay, self.BASE_URL)))
         html.write("""
                 <style>
                         code {
@@ -167,13 +171,13 @@ class ServiceStatusPage():
                 html.write(html.br())
 
                 if service.controllable is True:
-                    html.write(html.a("START", href="/%s/start" % (service.name)) + " | " + html.a("STOP", href="/%s/stop" % (service.name)))
+                    html.write(html.a("START", href="%s/%s/start" % (self.BASE_URL, service.name)) + " | " + html.a("STOP", href="%s/%s/stop" % (self.BASE_URL, service.name)))
                 if service.info_url is not None:
                     html.write(" | " + html.a("INFO", href=service.info_url))
 
                 html.write(html.br() * 2)
 
-                if path in ["/%s/%s" % (service.name, c) for c in service.ACTIONS]:
+                if path in ["%s/%s/%s" % (self.BASE_URL, service.name, c) for c in service.actions]:
                     service.action(path.split("/")[-1])
 
         # LOAD AVERAGE
@@ -187,7 +191,8 @@ class ServiceStatusPage():
 
 
 class RequestHandler(BaseHTTPRequestHandler):
-    routers = [ ServiceStatusPage() ]
+    routers       = [ ServiceStatusPage() ]
+    root_redirect = routers[0].BASE_URL
 
     def _find_routing(self, path):
         for router in self.routers:
@@ -199,8 +204,13 @@ class RequestHandler(BaseHTTPRequestHandler):
     def _writeheaders(self, path):
         routing = self._find_routing(path)
 
-        self.send_response(200 if routing is not None else 404)
-        self.send_header('Content-type', 'text/html')
+        if path == "/":
+            self.send_response(301)
+            self.send_header('Location', self.root_redirect)
+        else:
+            self.send_response(200 if routing is not None else 404)
+            self.send_header('Content-type', 'text/html')
+
         self.end_headers()
 
     def do_HEAD(self):
@@ -210,7 +220,10 @@ class RequestHandler(BaseHTTPRequestHandler):
         routing = self._find_routing(self.path)
 
         self._writeheaders(self.path)
-        routing.route(self.path, self.wfile)
+        if routing is not None:
+            routing.route(self.path, self.wfile)
+        else:
+            self.wfile.write("404 - Not found.")
 
 
 serveraddr = ('', PORT)
