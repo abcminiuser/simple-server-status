@@ -82,7 +82,7 @@ class Service(object):
         return "%s / %s" % (self.LoadState, self.ActiveState)
 
     def action(self, operation):
-        if operation in self.ACTIONS:
+        if operation in self.actions:
             getattr(self, operation)()
         else:
             raise Exception("Requested action not allowed/recognized.")
