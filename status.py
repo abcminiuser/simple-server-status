@@ -2,9 +2,11 @@
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from subprocess import CalledProcessError
+
 import subprocess
 import os
 import socket
+import dbus
 
 
 # Port to serve on
@@ -52,11 +54,39 @@ class HTML(object):
 
 
 class Service(object):
+    DBUS_BASE_NAME    = "org.freedesktop.DBus"
+    SYSTEMD_BASE_NAME = "org.freedesktop.systemd1"
+    SYSTEMD_BASE_PATH = "/org/freedesktop/systemd1"
+
     def __init__(self, name, title, controllable, info_url):
         self.name         = name
         self.title        = title
         self.controllable = controllable
         self.info_url     = info_url
+
+        sysbus  = dbus.SystemBus()
+        systemd = sysbus.get_object(self.SYSTEMD_BASE_NAME, self.SYSTEMD_BASE_PATH)
+        systemd_manager = dbus.Interface(systemd, dbus_interface=("%s.Manager" % self.SYSTEMD_BASE_NAME))
+
+	self.systemd_unit_name     = systemd_manager.LoadUnit("%s.service" % name)
+	self.systemd_service       = sysbus.get_object(self.SYSTEMD_BASE_NAME, str(self.systemd_unit_name))
+        self.systemd_service_props = dbus.Interface(self.systemd_service, dbus_interface=("%s.Properties" % self.DBUS_BASE_NAME))
+	self.systemd_service_if    = dbus.Interface(self.systemd_service, "%s.Unit" % self.SYSTEMD_BASE_NAME)
+
+    def _get_property(self, name):
+        return self.systemd_service_props.Get(("%s.Unit" % self.SYSTEMD_BASE_NAME), name)
+
+    def status(self):
+        return "%s / %s" % (self._get_property("LoadState"), self._get_property("ActiveState"))
+
+    def action(self, operation):
+	getattr(self, operation)()
+
+    def start(self):
+        self.systemd_service_if.Start('replace')
+
+    def stop(self):
+        self.systemd_service_if.Stop('replace')
 
 
 class ServiceStatusPage():
@@ -80,12 +110,6 @@ class ServiceStatusPage():
 
     def _get_network_status(self):
         return self._run_and_get_output(["ifconfig"]) or "Unable to Retrieve Network Info"
-
-    def _get_service_status(self, service):
-        return self._run_and_get_output(["systemctl", "is-active", service]) or "Unable to Get Status"
-
-    def _service_control(self, service, command):
-        subprocess.call(["sudo", "systemctl", command, service])
 
     def accept(self, path):
         return True
@@ -134,7 +158,7 @@ class ServiceStatusPage():
             for service in self.SERVICES:
                 html.write(html.b(service.title) + html.br())
 
-                html.write(html.code("".join(i if i != '\n' else html.br() for i in self._get_service_status(service.name))))
+                html.write(html.code(service.status()))
                 html.write(html.br())
 
                 if service.controllable is True:
@@ -145,7 +169,7 @@ class ServiceStatusPage():
                 html.write(html.br() * 2)
 
                 if path in ["/%s/%s" % (service.name, c) for c in ["start", "stop"]]:
-                    self._service_control(service.name, path.split("/")[-1])
+                    service.action(path.split("/")[-1])
 
         # LOAD AVERAGE
         if self.SHOW_LOAD_AVERAGES is True and hasattr(os, "getloadavg"):
