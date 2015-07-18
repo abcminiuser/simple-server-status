@@ -58,6 +58,8 @@ class Service(object):
     SYSTEMD_BASE_NAME = "org.freedesktop.systemd1"
     SYSTEMD_BASE_PATH = "/org/freedesktop/systemd1"
 
+    ACTIONS = ["start", "stop"];
+
     def __init__(self, name, title, controllable, info_url):
         self.name         = name
         self.title        = title
@@ -80,7 +82,10 @@ class Service(object):
         return "%s / %s" % (self._get_property("LoadState"), self._get_property("ActiveState"))
 
     def action(self, operation):
-	getattr(self, operation)()
+        if operation in self.ACTIONS:
+            getattr(self, operation)()
+        else:
+            raise Exception("Requested action not allowed/recognized.")	
 
     def start(self):
         self.systemd_service_if.Start('replace')
@@ -168,7 +173,7 @@ class ServiceStatusPage():
 
                 html.write(html.br() * 2)
 
-                if path in ["/%s/%s" % (service.name, c) for c in ["start", "stop"]]:
+                if path in ["/%s/%s" % (service.name, c) for c in service.ACTIONS]:
                     service.action(path.split("/")[-1])
 
         # LOAD AVERAGE
