@@ -2,7 +2,7 @@
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 from subprocess import CalledProcessError
-
+from datetime import timedelta
 import subprocess
 import os
 import socket
@@ -103,8 +103,8 @@ class ServiceStatusPage():
                            Service(name="openvpn"            , title="Open VPN Client", controllable=True, info_url=None)]
     # Set to True to show network interface status
     SHOW_NETWORK_STATUS = True
-    # Set to True to show load averages
-    SHOW_LOAD_AVERAGES  = True
+    # Set to True to show system information
+    SHOW_SYSTEM_INFO    = True
     # Seconds between each auto-refresh
     IDLE_REFRESH_DELAY  = 10
 
@@ -118,6 +118,10 @@ class ServiceStatusPage():
 
     def _get_network_status(self):
         return self._run_and_get_output(["ifconfig"]) or "Unable to Retrieve Network Info"
+
+    def _get_uptime(self):
+	uptime_seconds = self._run_and_get_output(["cat", "/proc/uptime"]).split()[0]
+        return str(timedelta(seconds = float(uptime_seconds))) if uptime_seconds else "Unknown"
 
     def accept(self, path):
         return path.startswith(self.BASE_URL)
@@ -180,11 +184,14 @@ class ServiceStatusPage():
                 if path in ["%s/%s/%s" % (self.BASE_URL, service.name, c) for c in service.actions]:
                     service.action(path.split("/")[-1])
 
-        # LOAD AVERAGE
-        if self.SHOW_LOAD_AVERAGES is True and hasattr(os, "getloadavg"):
-            load_average = os.getloadavg()
-            html.write(html.h1("Load Averages:"))
-            html.write(html.code("%s %.02f %s %.02f %s %.02f" % (html.b("5 min:"), load_average[0], html.b("10 min:"), load_average[1], html.b("15 min:"), load_average[2])))
+        # SYSTEM INFO
+        if self.SHOW_SYSTEM_INFO is True:
+            html.write(html.h1("System Info:"))
+
+            load_average      = os.getloadavg()
+            load_average_html = "%s %.02f %s %.02f %s %.02f" % (html.b("5 min:"), load_average[0], html.b("10 min:"), load_average[1], html.b("15 min:"), load_average[2])
+
+            html.write(html.code("Load Averages: %s %s Uptime: %s" % (load_average_html, html.br(), self._get_uptime())))
 
         html.write("</body>")
         html.write("</html>")
