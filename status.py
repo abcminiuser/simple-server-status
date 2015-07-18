@@ -75,11 +75,11 @@ class Service(object):
         self.systemd_service_props = dbus.Interface(self.systemd_service, dbus_interface=("%s.Properties" % self.DBUS_BASE_NAME))
         self.systemd_service_if    = dbus.Interface(self.systemd_service, "%s.Unit" % self.SYSTEMD_BASE_NAME)
 
-    def _get_property(self, name):
+    def __getattr__(self, name):
         return self.systemd_service_props.Get(("%s.Unit" % self.SYSTEMD_BASE_NAME), name)
 
     def status(self):
-        return "%s / %s" % (self._get_property("LoadState"), self._get_property("ActiveState"))
+        return "%s / %s" % (self.LoadState, self.ActiveState)
 
     def action(self, operation):
         if operation in self.ACTIONS:
