@@ -25,7 +25,7 @@ class HTML(object):
         self.output.write(content)
 
     def element(self, name, content, **kwargs):
-        attrlist = "".join("%s=\"%s\"" % (key, value) for (key, value) in kwargs.iteritems())
+        attrlist = "".join("%s=\"%s\"" % (key.replace("attr_",""), value) for (key, value) in kwargs.iteritems())
         return """<%s %s>%s</%s>""" % (name, attrlist, content, name)
 
     def head(self, content=None, **kwargs):
@@ -168,6 +168,10 @@ class ServiceStatusPage():
                                 padding: 4px;
                                 font-size: 20px;
                         }
+
+                        .start { color: #009000 }
+                        .stop  { color: #900000 }
+                        .info  { color: #000090 }
                 </style>
                 """)
         html.write("</head>")
@@ -189,9 +193,9 @@ class ServiceStatusPage():
                 html.write(html.br())
 
                 if service.controllable is True:
-                    html.write(html.a("START", href="%s/%s/start" % (self.BASE_URL, service.name)) + " | " + html.a("STOP", href="%s/%s/stop" % (self.BASE_URL, service.name)))
+                    html.write(html.a("START", attr_class="start", attr_href="%s/%s/start" % (self.BASE_URL, service.name)) + " | " + html.a("STOP", attr_class="stop", attr_href="%s/%s/stop" % (self.BASE_URL, service.name)))
                 if service.info_url is not None:
-                    html.write(" | " + html.a("INFO", href=service.info_url))
+                    html.write(" | " + html.a("INFO", attr_href=service.info_url, attr_class="info"))
 
                 html.write(html.br() * 2)
 
