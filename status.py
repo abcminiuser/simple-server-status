@@ -177,7 +177,7 @@ class ServiceStatusPage():
         # NETWORK STATUS
         if self.SHOW_NETWORK_STATUS is True:
             html.write(html.h1("Network Status:"))
-            html.write(html.code(html.br().join(self._get_network_status().split('\n'))))
+            html.write(html.code(html.br().join(self._get_network_status().strip().split('\n'))))
 
         # SERVICE STATUS/CONTROL
         if self.SERVICES is not None:
