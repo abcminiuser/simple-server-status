@@ -34,8 +34,8 @@ class HTML(object):
     def title(self, content=None, **kwargs):
         return self.element("title", content, **kwargs)
 
-    def meta(self, metatype=None, content=None):
-        return """<META %s content="%s">""" % (metatype, content)
+    def meta(self, metatype=None, value=None, content=None):
+        return """<META %s=\"%s\" content="%s">""" % (metatype, value, content)
 
     def a(self, content=None, **kwargs):
         return self.element("a", content, **kwargs)
@@ -135,8 +135,8 @@ class ServiceStatusPage():
 
         html.write("<head>")
         html.write(html.title("%s - STATUS" % (HOSTNAME)))
-        html.write(html.meta("viewport", "width=device-width, initial-scale=1"))
-        html.write(html.meta("http-equiv=\"refresh\"", "%s;URL=%s" % (refresh_delay, self.BASE_URL)))
+        html.write(html.meta("name", "viewport", "width=device-width, initial-scale=1"))
+        html.write(html.meta("http-equiv", "refresh", "%s;URL=%s" % (refresh_delay, self.BASE_URL)))
         html.write("""
                 <style>
                         body {
