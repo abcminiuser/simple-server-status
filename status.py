@@ -34,8 +34,8 @@ class HTML(object):
     def title(self, content=None, **kwargs):
         return self.element("title", content, **kwargs)
 
-    def meta(self, metatype=None, value=None, content=None):
-        return """<META %s="%s" content="%s">""" % (metatype, value, content)
+    def meta(self, metatype=None, content=None):
+        return """<META %s content="%s">""" % (metatype, content)
 
     def a(self, content=None, **kwargs):
         return self.element("a", content, **kwargs)
@@ -135,24 +135,38 @@ class ServiceStatusPage():
 
         html.write("<head>")
         html.write(html.title("%s - STATUS" % (HOSTNAME)))
-        html.write(html.meta("http-equiv", "refresh", "%s;URL=%s" % (refresh_delay, self.BASE_URL)))
+        html.write(html.meta("viewport", "width=device-width, initial-scale=1"))
+        html.write(html.meta("http-equiv=\"refresh\"", "%s;URL=%s" % (refresh_delay, self.BASE_URL)))
         html.write("""
                 <style>
+                        body {
+                                margin: 40px auto;
+                                max-width: 1000px;
+                                line-height: 1.6;
+                                font-size: 18px;
+                                color: #444;
+                                padding: 0px 10px;
+                                background: #EEEEEE;
+                        }
+
                         code {
-                          width: 100em;
-                          display: inline-block;
-                          padding: 10px;
-                          margin: 5px;
-                          background: #ECECEC;
-                          border-radius: 20px;
+                                display: inline-block;
+                                max-width: 1000px;
+                                padding: 10px;
+                                margin: 5px;
+                                background: #CCCCCC;
+                                border-radius: 20px;
                         }
 
                         h1 {
-                          font-family: serif;
+                                font-family: serif;
                         }
 
                         a {
-                          font-weight: bold;
+                                font-family: serif;
+                                font-weight: bold;
+                                padding: 4px;
+                                font-size: 20px;
                         }
                 </style>
                 """)
