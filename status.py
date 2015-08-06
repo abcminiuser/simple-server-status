@@ -1,9 +1,8 @@
 #!/usr/bin/python
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-from subprocess import CalledProcessError
 from datetime import timedelta
-import subprocess
+import netifaces
 import os
 import socket
 import dbus
@@ -103,24 +102,23 @@ class ServiceStatusPage():
                            Service(name="openvpn"            , title="Open VPN Client", controllable=True, info_url=None)]
     # Set to True to show network interface status
     SHOW_NETWORK_STATUS = True
+    # List of interfaces to output information for
+    INTERFACE_LIST      = ["eth0", "tun0"]
     # Set to True to show system information
     SHOW_SYSTEM_INFO    = True
     # Seconds between each auto-refresh
     IDLE_REFRESH_DELAY  = 10
 
-    def _run_and_get_output(self, command):
-        try:
-            return subprocess.check_output(command, stderr=subprocess.STDOUT)
-        except CalledProcessError, e:
-            return e.output
-        except:
-            return None
+    def _get_iface_status(self, interfaces):
+        istatus = ["%s: %s" % (i, netifaces.ifaddresses(i)[netifaces.AF_INET][0]['addr']) for i in interfaces]
+        return istatus
 
     def _get_network_status(self):
         return self._run_and_get_output(["ifconfig"]) or "Unable to Retrieve Network Info"
 
     def _get_uptime(self):
-	uptime_seconds = self._run_and_get_output(["cat", "/proc/uptime"]).split()[0]
+	with open('/proc/uptime', 'r') as f:
+		uptime_seconds = f.readline().split('.')[0]
         return str(timedelta(seconds = float(uptime_seconds))) if uptime_seconds else "Unknown"
 
     def accept(self, path):
@@ -181,7 +179,7 @@ class ServiceStatusPage():
         # NETWORK STATUS
         if self.SHOW_NETWORK_STATUS is True:
             html.write(html.h1("Network Status:"))
-            html.write(html.code(html.br().join(self._get_network_status().strip().split('\n'))))
+            html.write(html.code(html.br().join(self._get_iface_status(self.INTERFACE_LIST))))
 
         # SERVICE STATUS/CONTROL
         if self.SERVICES is not None:
