@@ -110,7 +110,13 @@ class ServiceStatusPage():
     IDLE_REFRESH_DELAY  = 10
 
     def _get_iface_status(self, interfaces):
-        istatus = ["%s: %s" % (i, netifaces.ifaddresses(i)[netifaces.AF_INET][0]['addr']) for i in interfaces]
+        istatus = []
+        for i in interfaces:
+            try:
+                interface_address = netifaces.ifaddresses(i)[netifaces.AF_INET][0]['addr']
+                istatus.append("%s: %s" % (i, interface_address))
+            except:
+                istatus.append("%s: DOWN" % (i))
         return istatus
 
     def _get_network_status(self):
