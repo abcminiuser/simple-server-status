@@ -124,8 +124,14 @@ class ServiceStatusPage():
 
     def _get_uptime(self):
 	with open('/proc/uptime', 'r') as f:
-		uptime_seconds = f.readline().split('.')[0]
+	    uptime_seconds = f.readline().split('.')[0]
         return str(timedelta(seconds = float(uptime_seconds))) if uptime_seconds else "Unknown"
+
+    def _get_cpu_temperature(self):
+        temp_degrees = "?"
+        with open('/sys/class/thermal/thermal_zone0/temp') as f:
+	    temp_degrees = float(f.readline()) / 1000
+        return temp_degrees
 
     def accept(self, path):
         return path.startswith(self.BASE_URL)
@@ -213,7 +219,7 @@ class ServiceStatusPage():
             load_average      = os.getloadavg()
             load_average_html = "%s %.02f %s %.02f %s %.02f" % (html.b("5 min:"), load_average[0], html.b("10 min:"), load_average[1], html.b("15 min:"), load_average[2])
 
-            html.write(html.code("Load Averages: %s %s Uptime: %s" % (load_average_html, html.br(), self._get_uptime())))
+            html.write(html.code("Load Averages: %s %s Uptime: %s %s Temperature: %s" % (load_average_html, html.br(), self._get_uptime(), html.br(), self._get_cpu_temperature())))
 
         html.write("</body>")
         html.write("</html>")
