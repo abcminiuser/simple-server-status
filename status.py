@@ -119,18 +119,15 @@ class ServiceStatusPage():
                 istatus.append("%s: DOWN" % (i))
         return istatus
 
-    def _get_network_status(self):
-        return self._run_and_get_output(["ifconfig"]) or "Unable to Retrieve Network Info"
-
     def _get_uptime(self):
-	with open('/proc/uptime', 'r') as f:
-	    uptime_seconds = f.readline().split('.')[0]
-        return str(timedelta(seconds = float(uptime_seconds))) if uptime_seconds else "Unknown"
+        with open('/proc/uptime', 'r') as f:
+            uptime_seconds = f.readline().split('.')[0]
+            return str(timedelta(seconds = float(uptime_seconds))) if uptime_seconds else "Unknown"
 
     def _get_cpu_temperature(self):
         temp_degrees = "?"
         with open('/sys/class/thermal/thermal_zone0/temp') as f:
-	    temp_degrees = float(f.readline()) / 1000
+            temp_degrees = float(f.readline()) / 1000
         return temp_degrees
 
     def accept(self, path):
